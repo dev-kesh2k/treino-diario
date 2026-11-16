@@ -16,35 +16,11 @@ import {
   summarize,
   trainingDays,
 } from './fitness.js';
+import { EMAIL_RE, dayParam, num, pick, str } from './validate.js';
 
 export const api = Router();
 
 const wrap = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
-const str = (v, max = 120) => String(v ?? '').trim().slice(0, max);
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-/** Número validado; `optional` aceita vazio (null). */
-function num(v, label, min, max, { optional = false, int = false } = {}) {
-  if (v === undefined || v === null || v === '') {
-    if (optional) return null;
-    throw new HttpError(400, `Informe ${label}`);
-  }
-  const n = Number(String(v).replace(',', '.'));
-  if (!Number.isFinite(n) || n < min || n > max) throw new HttpError(400, `${label} deve estar entre ${min} e ${max}`);
-  return int ? Math.round(n) : Math.round(n * 10) / 10;
-}
-
-function pick(value, list, label) {
-  if (!list.includes(value)) throw new HttpError(400, `${label} inválido`);
-  return value;
-}
-
-const dayParam = (v) => {
-  if (v === undefined || v === '') return dayKey();
-  if (!isDay(v)) throw new HttpError(400, 'Data inválida');
-  return v;
-};
-
 api.get('/health', wrap(async (_req, res) => {
   await prisma.$queryRaw`SELECT 1`;
   res.json({ ok: true, db: true });
