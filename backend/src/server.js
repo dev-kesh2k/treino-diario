@@ -1,7 +1,6 @@
 import express from 'express';
 import { api } from './routes.js';
-import { HttpError } from './db.js';
-import { prisma } from './db.js';
+import { HttpError, prisma } from './db.js';
 
 const app = express();
 app.set('trust proxy', true);
