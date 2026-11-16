@@ -1,0 +1,18 @@
+name: Testes
+
+# Lint e testes do backend em cada push e pull request (este app não tem deploy automático).
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  testes:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Lint (variável sem declarar/importar)
+        run: cd backend && npx --yes eslint@9 .
