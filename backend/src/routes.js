@@ -64,7 +64,7 @@ api.post('/auth/register', wrap(async (req, res) => {
   const password = String(req.body?.password ?? '');
   if (name.length < 2) throw new HttpError(400, 'Informe seu nome');
   if (!EMAIL_RE.test(email)) throw new HttpError(400, 'E-mail inválido');
-  if (password.length < 6) throw new HttpError(400, 'A senha precisa ter pelo menos 6 caracteres');
+  if (password.length < 8) throw new HttpError(400, 'A senha precisa ter pelo menos 8 caracteres');
   if (await prisma.user.findUnique({ where: { email } })) throw new HttpError(409, 'Este e-mail já está cadastrado');
   const user = await prisma.user.create({ data: { name, email, passwordHash: await bcrypt.hash(password, 10) } });
   res.status(201).json({ token: signToken(user), user: publicUser(user) });
@@ -128,7 +128,7 @@ api.put('/me/password', wrap(async (req, res) => {
   const current = String(req.body?.currentPassword ?? '');
   const next = String(req.body?.newPassword ?? '');
   if (!(await bcrypt.compare(current, req.user.passwordHash))) throw new HttpError(400, 'Senha atual incorreta');
-  if (next.length < 6) throw new HttpError(400, 'A nova senha precisa ter pelo menos 6 caracteres');
+  if (next.length < 8) throw new HttpError(400, 'A nova senha precisa ter pelo menos 8 caracteres');
   await prisma.user.update({ where: { id: req.user.id }, data: { passwordHash: await bcrypt.hash(next, 10) } });
   res.json({ ok: true });
 }));

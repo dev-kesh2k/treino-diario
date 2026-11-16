@@ -92,7 +92,7 @@ export default function Profile() {
         <section className="card space-y-3 p-4">
           <h2 className="text-sm font-bold">Alterar senha</h2>
           <input className="input" type="password" placeholder="Senha atual" autoComplete="current-password" value={pw.currentPassword} onChange={(e) => setPw({ ...pw, currentPassword: e.target.value })} />
-          <input className="input" type="password" placeholder="Nova senha (mín. 6)" autoComplete="new-password" value={pw.newPassword} onChange={(e) => setPw({ ...pw, newPassword: e.target.value })} />
+          <input className="input" type="password" placeholder="Nova senha (mín. 8)" autoComplete="new-password" value={pw.newPassword} onChange={(e) => setPw({ ...pw, newPassword: e.target.value })} />
           {pwError && <ErrorBox message={pwError} />}
           <button className="btn-ghost w-full" onClick={changePw} disabled={!pw.currentPassword || !pw.newPassword}>
             Alterar senha
