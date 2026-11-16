@@ -17,6 +17,7 @@ import {
   trainingDays,
 } from './fitness.js';
 import { EMAIL_RE, dayParam, num, pick, str } from './validate.js';
+import { createLoginLimiter } from './login-limit.js';
 
 export const api = Router();
 
@@ -27,12 +28,9 @@ api.get('/health', wrap(async (_req, res) => {
 }));
 
 // ---------- Autenticação ----------
-const attempts = new Map();
-function checkRate(key) {
-  const a = attempts.get(key) || { n: 0, until: 0 };
-  if (a.until > Date.now()) throw new HttpError(429, 'Muitas tentativas. Aguarde alguns minutos.');
-  return a;
-}
+// Limite de tentativas (por IP+e-mail e por IP); a limpeza roda a cada 10 min.
+const loginLimit = createLoginLimiter();
+setInterval(() => loginLimit.sweep(), 10 * 60_000).unref();
 
 api.post('/auth/register', wrap(async (req, res) => {
   const name = str(req.body?.name, 80);
@@ -49,16 +47,13 @@ api.post('/auth/register', wrap(async (req, res) => {
 api.post('/auth/login', wrap(async (req, res) => {
   const email = str(req.body?.email, 160).toLowerCase();
   const password = String(req.body?.password ?? '');
-  const key = `${req.ip}|${email}`;
-  const a = checkRate(key);
+  loginLimit.check(req.ip, email);
   const user = email ? await prisma.user.findUnique({ where: { email } }) : null;
   if (!user || !(await bcrypt.compare(password, user.passwordHash))) {
-    a.n += 1;
-    if (a.n >= 5) Object.assign(a, { n: 0, until: Date.now() + 5 * 60000 });
-    attempts.set(key, a);
+    loginLimit.fail(req.ip, email);
     throw new HttpError(401, 'E-mail ou senha incorretos');
   }
-  attempts.delete(key);
+  loginLimit.success(req.ip, email);
   res.json({ token: signToken(user), user: publicUser(user) });
 }));
 
