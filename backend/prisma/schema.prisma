@@ -1,0 +1,219 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "debian-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String   @id @default(cuid())
+  name          String
+  email         String   @unique
+  passwordHash  String
+  role          String   @default("member")
+  gender        String   @default("")
+  birthYear     Int?
+  heightCm      Float?
+  goalWeightKg  Float?
+  calorieGoal   Int      @default(2000)
+  burnGoal      Int      @default(500)
+  waterGoalMl   Int      @default(2000)
+  stepsGoal     Int      @default(8000)
+  weeklyGoal    Int      @default(4)
+  carbsPct      Int      @default(40)
+  proteinPct    Int      @default(30)
+  fatPct        Int      @default(30)
+  createdAt     DateTime @default(now())
+
+  sessions     WorkoutSession[]
+  meals        Meal[]
+  water        WaterLog[]
+  days         DailyLog[]
+  measurements BodyMeasurement[]
+  reminders    Reminder[]
+  favorites    Favorite[]
+  enrollments  Enrollment[]
+  workouts     Workout[]
+}
+
+model Exercise {
+  id           String   @id @default(cuid())
+  name         String   @unique
+  category     String   // superior | inferior | core | cardio
+  muscle       String   @default("")
+  mode         String   @default("reps") // reps | time
+  reps         Int      @default(12)
+  seconds      Int      @default(30)
+  kcalPerMin   Float    @default(6)
+  instructions String   @default("")
+  icon         String   @default("dumbbell")
+  createdAt    DateTime @default(now())
+
+  items WorkoutItem[]
+}
+
+model Program {
+  id              String   @id @default(cuid())
+  name            String
+  goal            String   // perder-peso | ganhar-massa | definicao | iniciante
+  level           String   @default("Intermediário")
+  weeks           Int      @default(4)
+  sessionsPerWeek Int      @default(3)
+  description     String   @default("")
+  color           String   @default("violet")
+  sort            Int      @default(0)
+  createdAt       DateTime @default(now())
+
+  workouts    Workout[]
+  enrollments Enrollment[]
+}
+
+model Workout {
+  id          String   @id @default(cuid())
+  name        String
+  description String   @default("")
+  level       String   @default("Intermediário")
+  restSeconds Int      @default(20)
+  programId   String?
+  program     Program? @relation(fields: [programId], references: [id], onDelete: SetNull)
+  ownerId     String?
+  owner       User?    @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  sort        Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  items     WorkoutItem[]
+  sessions  WorkoutSession[]
+  favorites Favorite[]
+
+  @@index([ownerId])
+}
+
+model WorkoutItem {
+  id         String   @id @default(cuid())
+  workoutId  String
+  workout    Workout  @relation(fields: [workoutId], references: [id], onDelete: Cascade)
+  exerciseId String
+  exercise   Exercise @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+  position   Int
+  reps       Int?
+  seconds    Int?
+
+  @@index([workoutId])
+}
+
+model Enrollment {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  programId String
+  program   Program  @relation(fields: [programId], references: [id], onDelete: Cascade)
+  active    Boolean  @default(true)
+  startedAt DateTime @default(now())
+
+  @@unique([userId, programId])
+}
+
+model Favorite {
+  userId    String
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workoutId String
+  workout   Workout @relation(fields: [workoutId], references: [id], onDelete: Cascade)
+
+  @@id([userId, workoutId])
+}
+
+model WorkoutSession {
+  id             String   @id @default(cuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workoutId      String?
+  workout        Workout? @relation(fields: [workoutId], references: [id], onDelete: SetNull)
+  programId      String?
+  name           String
+  day            String
+  durationSec    Int
+  kcal           Int
+  exercisesDone  Int
+  exercisesTotal Int
+  createdAt      DateTime @default(now())
+
+  @@index([userId, day])
+}
+
+model Meal {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  day       String
+  type      String   // cafe | almoco | jantar | lanche
+  name      String
+  kcal      Int
+  carbsG    Float    @default(0)
+  proteinG  Float    @default(0)
+  fatG      Float    @default(0)
+  createdAt DateTime @default(now())
+
+  @@index([userId, day])
+}
+
+model WaterLog {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  day       String
+  ml        Int
+  createdAt DateTime @default(now())
+
+  @@index([userId, day])
+}
+
+model DailyLog {
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  day    String
+  steps  Int    @default(0)
+
+  @@id([userId, day])
+}
+
+model BodyMeasurement {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  day        String
+  weightKg   Float?
+  waistCm    Float?
+  chestCm    Float?
+  hipCm      Float?
+  armCm      Float?
+  thighCm    Float?
+  bodyFatPct Float?
+  createdAt  DateTime @default(now())
+
+  @@index([userId, day])
+}
+
+model Reminder {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  label     String
+  time      String
+  days      String   @default("0123456")
+  enabled   Boolean  @default(true)
+  createdAt DateTime @default(now())
+}
+
+model Article {
+  id        String   @id @default(cuid())
+  slug      String   @unique
+  title     String
+  category  String   @default("Dicas")
+  summary   String   @default("")
+  body      String
+  minutes   Int      @default(3)
+  createdAt DateTime @default(now())
+}
